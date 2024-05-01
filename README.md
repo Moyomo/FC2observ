@@ -2,9 +2,9 @@
 	<img src="https://i.imgur.com/5BjNagv.png" alt="FC2observ logo" /><br /><br />
 	<strong>External radar for CS2 using FC2 memory reading</strong><br />
 	<span>Easy to read, infinitely resizeable, and with tons of settings</span><br /><br />
-	<span>Click here to see a showcase video on Youtube:</span><br />
+	<span>Click here to watch a showcase video on Youtube:</span><br />
 	<a href="https://www.youtube.com/watch?v=TPowO8yosZs" target="_blank">
- 		<img src="https://i.imgur.com/XpxzAUk.jpg" alt="Showcase Video" width="560" height="315" border="10" />
+ 		<img src="https://i.imgur.com/XpxzAUk.jpg" alt="Showcase Video" width="560" height="315" border="1" />
 	</a>
 </div>
 
@@ -23,7 +23,7 @@ The radar images used are made by [simpleradar](https://readtldr.gg/simpleradar)
 
 ### Infinitely scalable
 
-Because Boltobserv runs as an external application, it can be resized to be whatever size you want, and be moved to any display you want.
+Because FC2observ runs as an external application, it can be resized to be whatever size you want, and be moved to any display you want.
 Running without window borders enables it to dedicate as much space as possible to the radar.
 
 It can even run in a browser, allowing you to view the radar over the network. This also means that the radar can be added as a browser source in applications like OBS with a transparent background.
@@ -42,7 +42,7 @@ It can even run in a browser, allowing you to view the radar over the network. T
 
 1. Download the latest .zip form the [releases](https://github.com/Moyomo/FC2observ/releases) page and unzip it.
 2. Launch `FC2observ.exe`, it should ask you to automatically install the .cfg file. If it doesn't, copy the `gamestate_integration_fc2observ.cfg` file from the .zip to your CS config folder (the same folder you'd put an `autoexec.cfg`).
-3. You're done! (Re)start CS2 and Boltobserv should automatically connect.
+3. You're done! (Re)start CS2 and FC2observ should automatically connect.
 
 Please report any bugs or feature requests here on Github.
 

@@ -31,49 +31,36 @@ global = {
 	 * @return {Number}             Relative radar percentage
 	 */
 	positionToPerc: (positionObj, axis, playerNum) => {
-		// The position of the player in game, with the bottom left corner of the radar as origin (0,0)
-		let gamePosition = positionObj[axis] + global.mapData.offset[axis]
-		// The position of the player relative to an 1024x1024 pixel grid
-		let pixelPosition = gamePosition / global.mapData.resolution
-		// The position of the player as an percentage for any size
-		let precPosition = pixelPosition / 1024 * 100
-
-		// Set the split to the default map
-		let currentSplit = -1
-		// Check if there are splits on the map and if we have a Z position
-		if (global.mapData.splits.length > 0 && typeof positionObj.z == "number") {
-			// Go through each split
+		let gamePosition = positionObj[axis] + global.mapData.offset[axis];
+		let pixelPosition = gamePosition / global.mapData.resolution;
+		let precPosition = pixelPosition / 1024 * 100;
+		let currentSplit = -1;
+	
+		if (global.mapData.splits.length > 0 && typeof positionObj.z === "number") {
 			for (let i in global.mapData.splits) {
-				let split = global.mapData.splits[i]
-
-				// If the position is within the split
+				let split = global.mapData.splits[i];
 				if (positionObj.z > split.bounds.bottom && positionObj.z < split.bounds.top) {
-					// Apply the split offset and save this split
-					precPosition += split.offset[axis]
-					currentSplit = parseInt(i)
-
-					// Stop checking other splits as there can only be one active split
-					break
+					precPosition += split.offset[axis];
+					currentSplit = parseInt(i);
+					break;
 				}
 			}
 		}
-
-		// If we're calculating a player position
-		if (typeof playerNum == "number") {
-			// Wipe the location buffer if we've changed split
-			// Prevents the player from flying across the radar on split switch
-			if (global.playerSplits[playerNum] != currentSplit) {
-				global.playerBuffers[playerNum] = []
+	
+		if (typeof playerNum === "number" && playerNum >= 0 && playerNum < global.playerPos.length) {
+			if (global.playerSplits[playerNum] !== currentSplit) {
+				global.playerBuffers[playerNum] = [];
 			}
-
-			// Save this split as the last split id seen
-			global.playerSplits[playerNum] = currentSplit
-			global.playerPos[playerNum].split = currentSplit
+			global.playerSplits[playerNum] = currentSplit;
+			if (global.playerPos[playerNum]) {
+				if (typeof global.playerPos[playerNum].split === "undefined") {
+					global.playerPos[playerNum].split = currentSplit;
+				}
+			}
 		}
-
-		// Return the position relative to the radar image
-		return precPosition
-	}
+	
+		return precPosition;
+	}	
 }
 
 // Fill position and buffer arrays

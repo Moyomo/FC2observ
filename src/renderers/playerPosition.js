@@ -76,24 +76,25 @@ socket.element.addEventListener("players", event => {
 // On round reset
 socket.element.addEventListener("roundend", event => {
 	let phase = event.data
-
-	// Go through each player
-	for (let num in global.playerBuffers) {
-		// Empty the location buffer
-		global.playerBuffers[num] = []
-		// Reset the player position
-		global.playerPos[num] = {
-			x: null,
-			y: null,
-			z: null,
-			a: null,
-			alive: false
-		}
-
-		// Force a re-render on the dot and label, can sometimes bug out in electron
-		global.playerDots[num].style.display = "none"
-		global.playerDots[num].style.display = "block"
-		global.playerLabels[num].style.display = "none"
-		global.playerLabels[num].style.display = ""
+	if (global.playerBuffers) {
+		// Go through each player
+		for (let num in global.playerBuffers) {
+			// Empty the location buffer
+			global.playerBuffers[num] = []
+			// Reset the player position
+			global.playerPos[num] = {
+				x: null,
+				y: null,
+				z: null,
+				a: null,
+				alive: false
+			}
+	
+			// Force a re-render on the dot and label, can sometimes bug out in electron
+			global.playerDots[num].style.display = "none"
+			global.playerDots[num].style.display = "block"
+			global.playerLabels[num].style.display = "none"
+			global.playerLabels[num].style.display = ""
+		}	
 	}
 })

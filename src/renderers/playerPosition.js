@@ -76,7 +76,9 @@ socket.element.addEventListener("players", event => {
 // On round reset
 socket.element.addEventListener("roundend", event => {
 	let phase = event.data
-
+	if (!global.playerBuffers) {
+		return
+	}
 	// Go through each player
 	for (let num in global.playerBuffers) {
 		// Empty the location buffer
@@ -95,5 +97,5 @@ socket.element.addEventListener("roundend", event => {
 		global.playerDots[num].style.display = "block"
 		global.playerLabels[num].style.display = "none"
 		global.playerLabels[num].style.display = ""
-	}
+	}	
 })

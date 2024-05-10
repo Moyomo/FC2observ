@@ -47,11 +47,11 @@ global = {
 				let split = global.mapData.splits[i]
 
 				// If the position is within the split
-				if (positionObj.z > split.bounds.bottom && positionObj.z < split.bounds.top) {
-					// Apply the split offset and save this split
-					precPosition += split.offset[axis]
-					currentSplit = parseInt(i)
-
+				if (typeof playerNum === "number" && playerNum >= 0 && playerNum < global.playerPos.length) {
+					if (global.playerSplits[playerNum] !== currentSplit) {
+						global.playerBuffers[playerNum] = [];
+					}
+					global.playerSplits[playerNum] = currentSplit;
 					// Stop checking other splits as there can only be one active split
 					break
 				}

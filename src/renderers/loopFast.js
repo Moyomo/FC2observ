@@ -15,7 +15,6 @@ function step() {
 				global.playerBuffers[num].y == 0
 				global.playerBuffers[num].a == 0
 				global.playerBuffers[num].z == 0
-				console.log("FUCK")
 			}
 	
 			// If a new player position is available

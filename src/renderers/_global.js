@@ -59,16 +59,18 @@ global = {
 		}
 
 		// If we're calculating a player position
-		if (typeof playerNum == "number") {
+		if (typeof playerNum === "number" && playerNum >= 0 && playerNum < global.playerPos.length) {
 			// Wipe the location buffer if we've changed split
 			// Prevents the player from flying across the radar on split switch
-			if (global.playerSplits[playerNum] != currentSplit) {
-				global.playerBuffers[playerNum] = []
-			}
+			if (global.playerPos[playerNum] && typeof global.playerPos[playerNum] === 'object') {
+				if (global.playerSplits[playerNum] != currentSplit) {
+					global.playerBuffers[playerNum] = []
+				}
 
-			// Save this split as the last split id seen
-			global.playerSplits[playerNum] = currentSplit
-			global.playerPos[playerNum].split = currentSplit
+				// Save this split as the last split id seen
+				global.playerSplits[playerNum] = currentSplit
+				global.playerPos[playerNum].split = currentSplit
+			}
 		}
 
 		// Return the position relative to the radar image

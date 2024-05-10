@@ -4,7 +4,7 @@
 // without making changes here. This makes your config a lot more portable.
 
 {
-	"_version": "1.5.0",
+	"_version": "1.4.0",
 
 	// Settings related to FC2
 	"fc2": {
@@ -18,7 +18,7 @@
 		"disable": false,
 
 		// Always show the window as the top application
-		"alwaysOnTop": true,
+		"alwaysOnTop": false,
 
 		// Make the background of the window transparent
 		"transparent": false,
@@ -26,7 +26,7 @@
 		// Change the background color of the window with optional transparency
 		// The color should be in hexadecimal color code
 		// like #FFF or #FFFFFF to normal color and #80FFFFFF to color with transparency
-		"backgroundColor": "#0d0d0d",
+		"backgroundColor": "#000000",
 
 		// Start window as a full screen application
 		// Use ALT + F4 to quit
@@ -42,13 +42,13 @@
 		// The default shape and position of the window
 		"defaultSize": {
 			// The height and width in pixels
-			"height": 300,
-			"width": 300,
+			"height": 600,
+			"width": 600,
 
 			// The default distance from the top left of the screen
 			// Set to -1 to let the OS pick the best place
-			"top": 1,
-			"left": 1
+			"top": -1,
+			"left": -1
 		}
 	},
 

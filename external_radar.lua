@@ -38,9 +38,11 @@ function external_radar.on_http_request( data )
 
         -- convert to lib_players class
         player = players.to_player( player )
+        if not player then goto skip end
 
         -- get origin (position)
         local origin = player:get_origin()
+        if not origin then goto skip end
 
         -- don't show disconnected players
         if origin["x"] == 0 and origin["y"] == 0 then goto skip end

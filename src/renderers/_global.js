@@ -79,7 +79,7 @@ global = {
 }
 
 // Fill position and buffer arrays
-for (var i = 0; i < 10; i++) {
+for (var i = 0; i < 19; i++) {
 	global.playerPos.push({
 		x: null,
 		y: null,

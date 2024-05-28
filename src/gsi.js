@@ -24,7 +24,7 @@ setInterval(async () => {
 	}
 
 	// check if returned info is valid
-	if (!game_info || !game_info.players) return;
+	if (!game_info || !game_info.players || !game_info.localplayer) return;
 
 	// define empty array for players
 	let playerArr = [];
@@ -42,13 +42,14 @@ setInterval(async () => {
 
 		// add player to player array
 		playerArr.push({
-			id: player.name,
+			id: toString(player.index),
+			// num: i,
 			num: player.index - 1,
 			team: player.team == 3 ? 'CT' : 'T',
 			health: player.health,
-			active: true,
+			active: player.index == game_info.localplayer.index,
 			flashed: 0,
-			bomb: false,
+			bomb: player.bomb,
 			bombActive: false,
 			angle: player.viewangles.y,
 			ammo: { },
@@ -67,6 +68,21 @@ setInterval(async () => {
 			players: playerArr
 		}
 	})
+
+	// bomb info
+	if (game_info.bomb) {
+		process.send({
+			type: "bomb",
+			data: {
+				state: game_info.bomb.state,
+				position: {
+					x: parseFloat(game_info.bomb.pos.x),
+					y: parseFloat(game_info.bomb.pos.y),
+					z: parseFloat(game_info.bomb.pos.z)
+				}
+			}
+		})
+	}
 }, config.fc2.refresh_delay);
 
 function handleRequest(req, res) {

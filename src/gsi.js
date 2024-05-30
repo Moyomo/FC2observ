@@ -48,7 +48,7 @@ setInterval(async () => {
 			team: player.team == 3 ? 'CT' : 'T',
 			health: player.health,
 			active: player.index == game_info.localplayer.index,
-			flashed: 0,
+			flashed: player.flash_alpha,
 			bomb: player.bomb,
 			bombActive: false,
 			angle: player.viewangles.y,

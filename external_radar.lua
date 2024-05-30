@@ -253,10 +253,13 @@ function external_radar.on_http_request( data )
         local view = player:get_eye_angles()
         if not view then goto skip end
 
+        -- check if player is flashed
+        local pawn = player:get_pawn()
+        local flashed_value = pawn:read(MEM_FLOAT, modules.source2:get_schema("C_CSPlayerPawnBase", "m_flFlashOverlayAlpha"))
+
         -- check if player has bomb
         local has_bomb = false
         if not bBombPlanted and bomb_carrier_entity and external_radar.cache.bomb_entity ~= nil then
-            local pawn = player:get_pawn()
             if bomb_carrier_entity.address == pawn.address then
                 has_bomb = true
             end
@@ -268,6 +271,7 @@ function external_radar.on_http_request( data )
             team = player:get_team(),
             health = player:get_health(),
             name = player:get_name(),
+            flash_alpha = flashed_value,
             bomb = has_bomb,
             position = {
                 x = origin["x"],

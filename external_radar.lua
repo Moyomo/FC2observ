@@ -155,6 +155,23 @@ function external_radar.on_http_request( data )
     local localplayer = modules.entity_list:get_localplayer()
     if not localplayer then return end
 
+    -- get localplayer pawn and index
+    local local_pawn = localplayer:get_pawn()
+    local local_index = localplayer:get_index()
+
+    -- define observer target variables to prevent a Lua error
+    local hObserverTarget = -1
+    local observer_target_pawn = nil
+
+    -- check if localplayer is spectating someone
+    local oberver_services = local_pawn:read( MEM_ADDRESS, modules.source2:get_schema("C_BasePlayerPawn", "m_pObserverServices") )
+    if not oberver_services:is_valid() then goto skip_observer end
+    hObserverTarget = oberver_services:read( MEM_INT, modules.source2:get_schema("CPlayer_ObserverServices", "m_hObserverTarget") )
+    if not hObserverTarget or hObserverTarget == -1 then goto skip_observer end
+    observer_target_pawn = modules.entity_list:from_handle( hObserverTarget )
+
+    ::skip_observer::
+
     -- check if the bomb address in the script cache is valid
     if not external_radar.cache.dwPlantedC4 then
         -- if this gets spammed in console the sig is probably outdated
@@ -166,7 +183,7 @@ function external_radar.on_http_request( data )
     -- the json content we're going to send back to the server. first put it in a table.
     local output = {
         localplayer = {
-            index = localplayer:get_index()
+            index = local_index
         },
         players = {},
         bomb = {
@@ -246,9 +263,6 @@ function external_radar.on_http_request( data )
         local origin = player:get_origin()
         if not origin then goto skip end
 
-        -- don't show disconnected players
-        if origin["x"] == 0 and origin["y"] == 0 then goto skip end
-
         -- get viewangles
         local view = player:get_eye_angles()
         if not view then goto skip end
@@ -265,11 +279,15 @@ function external_radar.on_http_request( data )
             end
         end
 
+        -- get player index
+        local player_index = player:get_index()
+
         -- insert to output table
         table.insert( output.players, {
-            index = player:get_index(),
+            index = player_index,
             team = player:get_team(),
             health = player:get_health(),
+            active = player_index == local_index or (observer_target_pawn ~= nil and pawn.address == observer_target_pawn.address),
             name = player:get_name(),
             flash_alpha = flashed_value,
             bomb = has_bomb,

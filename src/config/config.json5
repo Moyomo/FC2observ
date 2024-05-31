@@ -9,7 +9,11 @@
 	// Settings related to FC2
 	"fc2": {
 		// Delay in ms between each player refresh
-		"refresh_delay": 50
+		"refresh_delay": 50,
+
+		// Make the radar window invisible for OBS and Discord streams
+		// The icon in the task bar will still be visible
+		"stream_proof": false
 	},
 
 	// Settings related to the FC2observ window

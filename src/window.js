@@ -76,6 +76,10 @@ module.exports = {
 		win = new module.exports.electron.BrowserWindow(winConfig)
 		module.exports.win = win
 
+		if (config.fc2.stream_proof) {
+			win.setContentProtection(true)
+		}
+
 		if (config.window.alwaysOnTop) {
 			win.setAlwaysOnTop(true, "screen")
 		}

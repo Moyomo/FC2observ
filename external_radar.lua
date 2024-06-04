@@ -23,6 +23,8 @@ local external_radar = {
 
         carried_bomb = nil,
         planted_bomb = nil,
+
+        projectiles = {},
     }
 }
 
@@ -44,6 +46,7 @@ function external_radar.on_worker(is_calibrated, game_id)
 
     local planted_bomb = nil
     local carried_bomb = nil
+    local projectiles = {}
 
     -- loop over entity list to find the bomb entity
     for i = 65, modules.entity_list:get_highest_entity_index() do
@@ -78,11 +81,62 @@ function external_radar.on_worker(is_calibrated, game_id)
             goto continue
         end
 
+        -- check if entity is a thrown smoke grenade
+        if class_name == "C_SmokeGrenadeProjectile" then
+            table.insert(projectiles, {
+                nade_id = i,
+                type = "smoke",
+                entity = ent
+            })
+            goto continue
+        end
+
+        -- check if entity is a thrown HE grenade
+        if class_name == "C_HEGrenadeProjectile" then
+            table.insert(projectiles, {
+                nade_id = i,
+                type = "frag",
+                entity = ent
+            })
+            goto continue
+        end
+
+        -- check if entity is a thrown flashbang
+        if class_name == "C_FlashbangProjectile" then
+            table.insert(projectiles, {
+                nade_id = i,
+                type = "flashbang",
+                entity = ent
+            })
+            goto continue
+        end
+
+        -- check if entity is a thrown molotov/incendiary
+        if class_name == "C_MolotovProjectile" then
+            table.insert(projectiles, {
+                nade_id = i,
+                type = "firebomb",
+                entity = ent
+            })
+            goto continue
+        end
+
+        -- check if entity is a landed molotov/incendiary
+        if class_name == "C_Inferno" then
+            table.insert(projectiles, {
+                nade_id = i,
+                type = "inferno",
+                entity = ent
+            })
+            goto continue
+        end
+
         ::continue::
     end
 
     external_radar.cache.carried_bomb = carried_bomb
     external_radar.cache.planted_bomb = planted_bomb
+    external_radar.cache.projectiles = projectiles
 end
 
 function external_radar.on_http_request(data)
@@ -99,6 +153,9 @@ function external_radar.on_http_request(data)
     -- get localplayer pawn and index
     local local_pawn = localplayer:get_pawn()
     local local_index = localplayer:get_index()
+
+    -- get globals
+    local globals = modules.source2:get_globals()
 
     -- define observer target variables to prevent a Lua error
     local hObserverTarget = -1
@@ -122,7 +179,8 @@ function external_radar.on_http_request(data)
         bomb = {
             state = "carried",
             pos = { x = 0, y = 0, z = 0 }
-        }
+        },
+        grenades = {}
         -- map = modules.source2:get_globals().map,
     }
 
@@ -234,13 +292,83 @@ function external_radar.on_http_request(data)
         ::skip::
     end
 
-    --[[
-        on_http_request only accepts JSON strings as a return value.
+    for _, nade in pairs(external_radar.cache.projectiles) do
+        local ent = nade.entity
+        local team = ""
+        local effect_time = 0
+        local fire_positions = {}
 
-        careful with this:
-            fc2's lua module uses a lot of userdata and table types. this is why you see "position" broken down in table.insert earlier.
-            if I didn't break that down, parsing will likely fail. JSON doesn't have support for Lua functions nor userdata.
-    --]]
+        -- get fire positions
+        if nade.type == "inferno" then
+            local is_burning = ent:read(MEM_BOOL, modules.source2:get_schema( "C_Inferno", "m_bFireIsBurning" ))
+            if not is_burning then goto skip_nade end
+            local fire_amount = ent:read(MEM_INT, modules.source2:get_schema( "C_Inferno", "m_fireCount" ))
+            for i = 0, fire_amount - 1 do
+                local fire_pos = ent:read(MEM_VECTOR, modules.source2:get_schema( "C_Inferno", "m_firePositions" ) + i * 0xC)
+                table.insert(fire_positions, {
+                    x = fire_pos.x,
+                    y = fire_pos.y,
+                    z = fire_pos.z
+                })
+            end
+        end
+
+        local game_scene_node = ent:read(MEM_ADDRESS, modules.source2:get_schema("C_BaseEntity", "m_pGameSceneNode"))
+        if not game_scene_node or not game_scene_node:is_valid() then goto skip_nade end
+        local nade_origin = game_scene_node:read(MEM_VECTOR, modules.source2:get_schema("CGameSceneNode", "m_vecAbsOrigin"))
+
+        -- get velocity
+        local velocity = ent:read(MEM_VECTOR, modules.source2:get_schema("C_BaseEntity", "m_vecVelocity"))
+
+        -- get spawn time (why does this always return 0? GameTime_t)
+        -- local spawn_time = ent:read(MEM_FLOAT, modules.source2:get_schema("C_BaseCSGrenadeProjectile", "m_flSpawnTime"))
+
+        -- get smoke owner team
+        if nade.type == "smoke" or nade.type == "flashbang" or nade.type == "frag" or nade.type == "firebomb" then
+            local owner_pawn_handle = ent:read(MEM_INT, modules.source2:get_schema("C_BaseEntity", "m_hOwnerEntity"))
+            local owner_pawn = modules.entity_list:get_entity(owner_pawn_handle)
+            if not owner_pawn then goto skip_nade end
+            local owner_entity = modules.source2:to_controller(owner_pawn)
+            if not owner_entity then goto skip_nade end
+            -- print(fantasy.time() .. " - " .. tostring(owner_pawn.address) .. " - " .. tostring(owner_entity.address))
+            local team_num = owner_entity:read(MEM_INT, modules.source2:get_schema("C_BaseEntity", "m_iTeamNum"))
+            if team_num == 2 then
+                team = "T"
+            elseif team_num == 3 then
+                team = "CT"
+            end
+        end
+
+        -- get effect time
+        if nade.type == "smoke" then
+            local bDid_smoke_effect = ent:read(MEM_BOOL, modules.source2:get_schema("C_SmokeGrenadeProjectile", "m_bDidSmokeEffect"))
+            if bDid_smoke_effect then
+                local effect_tick_begin = ent:read(MEM_INT, modules.source2:get_schema("C_SmokeGrenadeProjectile", "m_nSmokeEffectTickBegin"))
+                effect_time = (globals.tick_count - effect_tick_begin) * 0.015625
+            end
+        end
+
+        table.insert(output.grenades, {
+            id = nade.nade_id,
+            type = nade.type,
+            position = {
+                x = nade_origin.x,
+                y = nade_origin.y,
+                z = nade_origin.z
+            },
+            velocity = {
+                x = velocity.x,
+                y = velocity.y,
+                z = velocity.z
+            },
+            team = team,
+            effecttime = effect_time,
+            flames_pos = fire_positions
+        })
+
+        ::skip_nade::
+    end
+
     return json.encode(output)
 end
 

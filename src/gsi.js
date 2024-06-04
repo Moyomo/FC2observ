@@ -83,6 +83,59 @@ setInterval(async () => {
 			}
 		})
 	}
+
+	// grenades
+	if (game_info.grenades) {
+		let grenades = {
+			smokes: [],
+			infernos: [],
+			flashbangs: [],
+			projectiles: []
+		}
+
+		for (let i = 0; i < game_info.grenades.length; i++) {
+			const nade = game_info.grenades[i];
+
+			// landed smoke
+			if (nade.type == "smoke" && nade.effecttime != 0) {
+				grenades.smokes.push({
+					id: nade.id,
+					time: parseFloat(nade.effecttime),
+					team: nade.team,
+					position: nade.position
+				})
+			}
+
+			// landed molly
+			else if (nade.type == "inferno") {
+				if (nade.flames_pos.length > 0) {
+					grenades.infernos.push({
+						id: nade.id,
+						flamesNum: nade.flames_pos.length,
+						flamesPosition: nade.flames_pos
+					})
+				}
+			}
+
+			// projectile
+			else if (nade.velocity != { x: 0, y: 0, z: 0 } && (nade.type != "smoke" || nade.effecttime == 0)) {
+				grenades.projectiles.push({
+					id: nade.type + nade.id,
+					type: nade.type,
+					team: nade.team,
+					position: nade.position
+				})
+			}
+		}
+
+		// Emit an event for every type of grenade
+		for (let type in grenades) {
+			process.send({
+				type: type,
+				data: grenades[type]
+			})
+		}
+	}
 }, config.fc2.refresh_delay);
 
 function handleRequest(req, res) {

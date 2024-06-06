@@ -15,7 +15,7 @@ local players = require("players") -- lib_players
 local external_radar = {
 
     -- time to wait between entity loops in ms
-    entity_refresh_delay = 10,
+    entity_refresh_delay = 100,
 
     -- cached data
     cache = {
@@ -55,16 +55,16 @@ function external_radar.on_worker(is_calibrated, game_id)
 
         -- get entity class name
         local pEntity = ent:read(MEM_ADDRESS, modules.source2:get_schema("CEntityInstance", "m_pEntity"))
-        if not pEntity:is_valid() then goto continue end
+        if not pEntity or not pEntity:is_valid() then goto continue end
 
         local entity_classinfo = pEntity:read(MEM_ADDRESS, 0x8)
-        if not entity_classinfo:is_valid() then goto continue end
+        if not entity_classinfo or not entity_classinfo:is_valid() then goto continue end
 
         local ptr1 = entity_classinfo:read(MEM_ADDRESS, 0x28)
-        if not ptr1:is_valid() then goto continue end
+        if not ptr1 or not ptr1:is_valid() then goto continue end
 
         local ptr2 = ptr1:read(MEM_ADDRESS, 0x8)
-        if not ptr2:is_valid() then goto continue end
+        if not ptr2 or not ptr2:is_valid() then goto continue end
 
         local class_name = ptr2:read(MEM_STRING, 0, 32)
         if not class_name or class_name == "" then goto continue end
@@ -163,7 +163,7 @@ function external_radar.on_http_request(data)
 
     -- check if localplayer is spectating someone
     local oberver_services = local_pawn:read(MEM_ADDRESS, modules.source2:get_schema("C_BasePlayerPawn", "m_pObserverServices"))
-    if not oberver_services:is_valid() then goto skip_observer end
+    if not oberver_services or not oberver_services:is_valid() then goto skip_observer end
     hObserverTarget = oberver_services:read(MEM_INT, modules.source2:get_schema("CPlayer_ObserverServices", "m_hObserverTarget"))
     if not hObserverTarget or hObserverTarget == -1 then goto skip_observer end
     observer_target_pawn = modules.entity_list:from_handle(hObserverTarget)

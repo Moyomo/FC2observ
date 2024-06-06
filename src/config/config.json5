@@ -4,7 +4,7 @@
 // without making changes here. This makes your config a lot more portable.
 
 {
-	"_version": "1.7.0",
+	"_version": "1.8.0",
 
 	// Settings related to FC2
 	"fc2": {

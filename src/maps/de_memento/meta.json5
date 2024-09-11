@@ -7,12 +7,12 @@
 	},
 
 	// The amount of in-game units per pixel of the 1024px radar image
-	"resolution": 3.99,
+	"resolution": 3.972,
 
 	// How many in-game units is the origin (0,0) of the map from the bottom left point of the radar
 	"offset": {
 		"x": 2111,
-		"y": 1550
+		"y": 1532
 	},
 
 	// Contains any special map splits

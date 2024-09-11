@@ -104,7 +104,7 @@
 
 		// Amount of scaling to apply to player dots on the radar
 		// Values above 1 might be blurry
-		"playerDotScale": 0.7,
+		"playerDotScale": 0.6,
 		// Same as the above, but for the bomb
 		"bombDotScale": 0.7
 	},

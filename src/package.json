@@ -18,10 +18,10 @@
     "electron-packager": "^17.1.2"
   },
   "dependencies": {
-    "express": "^4.19.2",
+    "express": "^4.20.0",
     "json5": "^2.2.3",
     "node-fetch": "^3.3.2",
-    "steam-game-path": "^2.2.0",
-    "ws": "^7.5.9"
+    "steam-game-path": "^2.3.0",
+    "ws": "^7.5.10"
   }
 }

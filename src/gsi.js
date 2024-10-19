@@ -1,5 +1,6 @@
 const http = require("http")
 const config = require("./loadconfig")
+const { unescape } = require("querystring")
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
 let server = http.createServer(handleRequest)
@@ -45,6 +46,7 @@ setInterval(async () => {
 			id: toString(player.index),
 			// num: i,
 			num: player.index - 1,
+			name: unescape(player.name),
 			team: player.team == 3 ? 'CT' : 'T',
 			health: player.health,
 			active: player.active,

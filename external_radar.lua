@@ -269,13 +269,20 @@ function external_radar.on_http_request(data)
         -- get player index
         local player_index = player:get_index()
 
+        -- get player name
+        local player_name = player:get_name()
+        if not player_name or #player_name == 0 then player_name = "?" end
+
+        -- convert player name to bytes
+        local player_name_bytes = string.gsub(player_name,"(.)",function (x) return string.format("%%%02X",string.byte(x)) end)
+
         -- insert to output table
         table.insert(output.players, {
             index = player_index,
             team = player:get_team(),
             health = player:get_health(),
             active = player_index == local_index or (observer_target_pawn ~= nil and pawn.address == observer_target_pawn.address),
-            name = player:get_name(),
+            name = player_name_bytes,
             flash_alpha = flashed_value,
             bomb = has_bomb,
             position = {

@@ -14,17 +14,21 @@ local players = require("players") -- lib_players
 
 local external_radar = {
 
-    -- time to wait between entity loops in ms
+    -- time to wait until fetching game data in milliseconds
     entity_refresh_delay = 100,
+    data_refresh_delay = 20,
 
     -- cached data
     cache = {
-        timestamp = 0,
-
-        carried_bomb = nil,
+        -- refresh timestamps
+        next_data_refresh = 0,
+        next_entity_refresh = 0,
+        -- cached data for external radar
+        game_data = {},
+        -- cached entity data
         planted_bomb = nil,
-
-        projectiles = {},
+        carried_bomb = nil,
+        projectile_entities = {},
     }
 }
 
@@ -36,115 +40,114 @@ end
 function external_radar.on_worker(is_calibrated, game_id)
     if not is_calibrated then return end
 
-    -- get localplayer
-    local localplayer = modules.entity_list:get_localplayer()
-    if not localplayer then return end
+    -- get current time
+    local time = fantasy.time()
 
-    -- check if entities should get updated
-    if fantasy.time() < external_radar.cache.timestamp then return end
-    external_radar.cache.timestamp = fantasy.time() + external_radar.entity_refresh_delay
+    -- check if entity cache should get updated
+    if time > external_radar.cache.next_entity_refresh then
+        -- bomb & projectile variables
+        local planted_bomb = nil
+        local carried_bomb = nil
+        local projectile_entities = {}
 
-    local planted_bomb = nil
-    local carried_bomb = nil
-    local projectiles = {}
+        -- loop over entity list to find the bomb and projectile entities
+        for i = 65, modules.entity_list:get_highest_entity_index() do
+            local ent = modules.entity_list:get_entity(i)
+            if not ent then goto continue end
 
-    -- loop over entity list to find the bomb entity
-    for i = 65, modules.entity_list:get_highest_entity_index() do
-        local ent = modules.entity_list:get_entity(i)
-        if not ent then goto continue end
+            -- get entity class name
+            local pEntity = ent:read(MEM_ADDRESS, modules.source2:get_schema("CEntityInstance", "m_pEntity"))
+            if not pEntity or not pEntity:is_valid() then goto continue end
 
-        -- get entity class name
-        local pEntity = ent:read(MEM_ADDRESS, modules.source2:get_schema("CEntityInstance", "m_pEntity"))
-        if not pEntity or not pEntity:is_valid() then goto continue end
+            local entity_classinfo = pEntity:read(MEM_ADDRESS, 0x8)
+            if not entity_classinfo or not entity_classinfo:is_valid() then goto continue end
 
-        local entity_classinfo = pEntity:read(MEM_ADDRESS, 0x8)
-        if not entity_classinfo or not entity_classinfo:is_valid() then goto continue end
+            local ptr1 = entity_classinfo:read(MEM_ADDRESS, 0x28)
+            if not ptr1 or not ptr1:is_valid() then goto continue end
 
-        local ptr1 = entity_classinfo:read(MEM_ADDRESS, 0x28)
-        if not ptr1 or not ptr1:is_valid() then goto continue end
+            local ptr2 = ptr1:read(MEM_ADDRESS, 0x8)
+            if not ptr2 or not ptr2:is_valid() then goto continue end
 
-        local ptr2 = ptr1:read(MEM_ADDRESS, 0x8)
-        if not ptr2 or not ptr2:is_valid() then goto continue end
+            local class_name = ptr2:read(MEM_STRING, 0, 32)
+            if not class_name or class_name == "" then goto continue end
 
-        local class_name = ptr2:read(MEM_STRING, 0, 32)
-        if not class_name or class_name == "" then goto continue end
+            -- check if entity is the planted bomb
+            if class_name == "C_PlantedC4" then
+                planted_bomb = ent
+                goto continue
+            end
 
-        -- check if entity is the planted bomb
-        if class_name == "C_PlantedC4" then
-            planted_bomb = ent
-            goto continue
+            -- check if entity is the carried bomb
+            if class_name == "C_C4" then
+                carried_bomb = ent
+                goto continue
+            end
+
+            -- check if entity is a thrown smoke grenade
+            if class_name == "C_SmokeGrenadeProjectile" then
+                table.insert(projectile_entities, {
+                    nade_id = i,
+                    type = "smoke",
+                    entity = ent
+                })
+                goto continue
+            end
+
+            -- check if entity is a thrown HE grenade
+            if class_name == "C_HEGrenadeProjectile" then
+                table.insert(projectile_entities, {
+                    nade_id = i,
+                    type = "frag",
+                    entity = ent
+                })
+                goto continue
+            end
+
+            -- check if entity is a thrown flashbang
+            if class_name == "C_FlashbangProjectile" then
+                table.insert(projectile_entities, {
+                    nade_id = i,
+                    type = "flashbang",
+                    entity = ent
+                })
+                goto continue
+            end
+
+            -- check if entity is a thrown molotov/incendiary
+            if class_name == "C_MolotovProjectile" then
+                table.insert(projectile_entities, {
+                    nade_id = i,
+                    type = "firebomb",
+                    entity = ent
+                })
+                goto continue
+            end
+
+            -- check if entity is a landed molotov/incendiary
+            if class_name == "C_Inferno" then
+                table.insert(projectile_entities, {
+                    nade_id = i,
+                    type = "inferno",
+                    entity = ent
+                })
+                goto continue
+            end
+
+            ::continue::
         end
 
-        -- check if entity is the carried bomb
-        if class_name == "C_C4" then
-            carried_bomb = ent
-            goto continue
-        end
+        -- save new entity data
+        external_radar.cache.planted_bomb = planted_bomb
+        external_radar.cache.carried_bomb = carried_bomb
+        external_radar.cache.projectile_entities = projectile_entities
 
-        -- check if entity is a thrown smoke grenade
-        if class_name == "C_SmokeGrenadeProjectile" then
-            table.insert(projectiles, {
-                nade_id = i,
-                type = "smoke",
-                entity = ent
-            })
-            goto continue
-        end
-
-        -- check if entity is a thrown HE grenade
-        if class_name == "C_HEGrenadeProjectile" then
-            table.insert(projectiles, {
-                nade_id = i,
-                type = "frag",
-                entity = ent
-            })
-            goto continue
-        end
-
-        -- check if entity is a thrown flashbang
-        if class_name == "C_FlashbangProjectile" then
-            table.insert(projectiles, {
-                nade_id = i,
-                type = "flashbang",
-                entity = ent
-            })
-            goto continue
-        end
-
-        -- check if entity is a thrown molotov/incendiary
-        if class_name == "C_MolotovProjectile" then
-            table.insert(projectiles, {
-                nade_id = i,
-                type = "firebomb",
-                entity = ent
-            })
-            goto continue
-        end
-
-        -- check if entity is a landed molotov/incendiary
-        if class_name == "C_Inferno" then
-            table.insert(projectiles, {
-                nade_id = i,
-                type = "inferno",
-                entity = ent
-            })
-            goto continue
-        end
-
-        ::continue::
+        -- setting next timestamp AFTER getting entities
+        external_radar.cache.next_entity_refresh = fantasy.time() + external_radar.entity_refresh_delay
     end
 
-    external_radar.cache.carried_bomb = carried_bomb
-    external_radar.cache.planted_bomb = planted_bomb
-    external_radar.cache.projectiles = projectiles
-end
-
-function external_radar.on_http_request(data)
-    -- only focus on our script.
-    if data["script"] ~= "external_radar.lua" then return end
-
-    -- luar (lua return) request only.
-    if data["path"] ~= "/luar" then return end
+    -- check if game data cache should get updated
+    if time < external_radar.cache.next_data_refresh then return end
+    external_radar.cache.next_data_refresh = time + external_radar.data_refresh_delay
 
     -- get localplayer
     local localplayer = modules.entity_list:get_localplayer()
@@ -157,90 +160,70 @@ function external_radar.on_http_request(data)
     -- get globals
     local globals = modules.source2:get_globals()
 
-    -- define observer target variables to prevent a Lua error
-    local hObserverTarget = -1
+    -- Check if local player is spectating someone
     local observer_target_pawn = nil
+    local observer_services = local_pawn:read(MEM_ADDRESS, modules.source2:get_schema("C_BasePlayerPawn", "m_pObserverServices"))
+    if observer_services and observer_services:is_valid() then
+        local hObserverTarget = observer_services:read(MEM_INT, modules.source2:get_schema("CPlayer_ObserverServices", "m_hObserverTarget"))
+        if hObserverTarget and hObserverTarget ~= -1 then
+            observer_target_pawn = modules.entity_list:from_handle(hObserverTarget)
+        end
+    end
 
-    -- check if localplayer is spectating someone
-    local oberver_services = local_pawn:read(MEM_ADDRESS, modules.source2:get_schema("C_BasePlayerPawn", "m_pObserverServices"))
-    if not oberver_services or not oberver_services:is_valid() then goto skip_observer end
-    hObserverTarget = oberver_services:read(MEM_INT, modules.source2:get_schema("CPlayer_ObserverServices", "m_hObserverTarget"))
-    if not hObserverTarget or hObserverTarget == -1 then goto skip_observer end
-    observer_target_pawn = modules.entity_list:from_handle(hObserverTarget)
+    -- get cached entity data
+    local planted_bomb = external_radar.cache.planted_bomb
+    local carried_bomb = external_radar.cache.carried_bomb
+    local projectile_entities = external_radar.cache.projectile_entities
 
-    ::skip_observer::
-
-    -- the json content we're going to send back to the server. first put it in a table.
-    local output = {
-        localplayer = {
-            index = local_index
-        },
-        players = {},
-        bomb = {
-            state = "carried",
-            pos = { x = 0, y = 0, z = 0 }
-        },
-        grenades = {}
-        -- map = modules.source2:get_globals().map,
-    }
-
-    -- variable to check for dropped bomb carrier
+    -- bomb related variables
     local bomb_carrier_entity = nil
+    local bomb_state = "carried"
+    local bomb_pos = { x = 0, y = 0, z = 0 }
 
     -- check if bomb is planted
-    if external_radar.cache.planted_bomb then
-        -- get planted bomb entity
-        local plantedC4 = external_radar.cache.planted_bomb
-
+    if planted_bomb then
         -- get planted bomb origin
-        local gameSceneNode = plantedC4:read(MEM_ADDRESS, modules.source2:get_schema("C_BaseEntity", "m_pGameSceneNode"))
+        local gameSceneNode = planted_bomb:read(MEM_ADDRESS, modules.source2:get_schema("C_BaseEntity", "m_pGameSceneNode"))
         local bomb_origin = gameSceneNode:read(MEM_VECTOR, modules.source2:get_schema("CGameSceneNode", "m_vecAbsOrigin"))
+        bomb_pos = {
+            x = bomb_origin.x,
+            y = bomb_origin.y,
+            z = bomb_origin.z
+        }
 
-        local state = "planted"
-        if plantedC4:read(MEM_BOOL, modules.source2:get_schema("C_PlantedC4", "m_bHasExploded")) then
-            state = "exploded"
-        elseif plantedC4:read(MEM_BOOL, modules.source2:get_schema("C_PlantedC4", "m_bBombDefused")) then
-            state = "defused"
-        elseif plantedC4:read(MEM_BOOL, modules.source2:get_schema("C_PlantedC4", "m_bBeingDefused")) then
-            state = "defusing"
+        bomb_state = "planted"
+        if planted_bomb:read(MEM_BOOL, modules.source2:get_schema("C_PlantedC4", "m_bHasExploded")) then
+            bomb_state = "exploded"
+        elseif planted_bomb:read(MEM_BOOL, modules.source2:get_schema("C_PlantedC4", "m_bBombDefused")) then
+            bomb_state = "defused"
+        elseif planted_bomb:read(MEM_BOOL, modules.source2:get_schema("C_PlantedC4", "m_bBeingDefused")) then
+            bomb_state = "defusing"
         end
 
-        output.bomb = {
-            state = state,
-            pos = {
-                x = bomb_origin.x,
-                y = bomb_origin.y,
-                z = bomb_origin.z
-            }
-        }
-    elseif external_radar.cache.carried_bomb then
-        local state = "carried"
-        local pos = { x = 0, y = 0, z = 0 }
-
+    -- check if bomb is dropped or getting carried
+    elseif carried_bomb then
         -- get the handle of the bomb carrier
-        local hOwner = external_radar.cache.carried_bomb:read(MEM_INT, modules.source2:get_schema("C_BaseEntity", "m_hOwnerEntity"))
+        local hOwner = carried_bomb:read(MEM_INT, modules.source2:get_schema("C_BaseEntity", "m_hOwnerEntity"))
         -- check if handle is valid
         if hOwner ~= -1 then
             -- get the bomb carrier pawn
             bomb_carrier_entity = modules.entity_list:from_handle(hOwner)
         else
-            local gameSceneNode = external_radar.cache.carried_bomb:read(MEM_ADDRESS, modules.source2:get_schema("C_BaseEntity", "m_pGameSceneNode"))
+            local gameSceneNode = carried_bomb:read(MEM_ADDRESS, modules.source2:get_schema("C_BaseEntity", "m_pGameSceneNode"))
             local bomb_origin = gameSceneNode:read(MEM_VECTOR, modules.source2:get_schema("CGameSceneNode", "m_vecAbsOrigin"))
-            state = "dropped"
-            pos = {
+            bomb_state = "dropped"
+            bomb_pos = {
                 x = bomb_origin.x,
                 y = bomb_origin.y,
                 z = bomb_origin.z
             }
         end
-
-        output.bomb = {
-            state = state,
-            pos = pos
-        }
     end
 
-    -- get all players
+    -- table for storing player info
+    local player_array = {}
+
+    -- loop over player entities
     for _, player in pairs(modules.entity_list:get_players()) do
         -- convert to lib_players class
         player = players.to_player(player)
@@ -260,7 +243,7 @@ function external_radar.on_http_request(data)
 
         -- check if player has bomb
         local has_bomb = false
-        if not external_radar.cache.planted_bomb and bomb_carrier_entity and external_radar.cache.carried_bomb then
+        if not planted_bomb and bomb_carrier_entity and carried_bomb then
             if bomb_carrier_entity.address == pawn.address then
                 has_bomb = true
             end
@@ -276,12 +259,12 @@ function external_radar.on_http_request(data)
         -- convert player name to bytes
         local player_name_bytes = string.gsub(player_name,"(.)",function (x) return string.format("%%%02X",string.byte(x)) end)
 
-        -- insert to output table
-        table.insert(output.players, {
+        -- insert to player table
+        table.insert(player_array, {
             index = player_index,
             team = player:get_team(),
             health = player:get_health(),
-            active = player_index == local_index or (observer_target_pawn ~= nil and pawn.address == observer_target_pawn.address),
+            active = player_index == local_index or (observer_target_pawn and pawn.address == observer_target_pawn.address),
             name = player_name_bytes,
             flash_alpha = flashed_value,
             bomb = has_bomb,
@@ -299,7 +282,11 @@ function external_radar.on_http_request(data)
         ::skip::
     end
 
-    for _, nade in pairs(external_radar.cache.projectiles) do
+    -- table for storing projectile info
+    local projectile_array = {}
+
+    -- loop over projectile entities
+    for _, nade in pairs(projectile_entities) do
         local ent = nade.entity
         local team = ""
         local effect_time = 0
@@ -337,7 +324,6 @@ function external_radar.on_http_request(data)
             if not owner_pawn then goto skip_nade end
             local owner_entity = modules.source2:to_controller(owner_pawn)
             if not owner_entity then goto skip_nade end
-            -- print(fantasy.time() .. " - " .. tostring(owner_pawn.address) .. " - " .. tostring(owner_entity.address))
             local team_num = owner_entity:read(MEM_INT, modules.source2:get_schema("C_BaseEntity", "m_iTeamNum"))
             if team_num == 2 then
                 team = "T"
@@ -355,7 +341,7 @@ function external_radar.on_http_request(data)
             end
         end
 
-        table.insert(output.grenades, {
+        table.insert(projectile_array, {
             id = nade.nade_id,
             type = nade.type,
             position = {
@@ -376,7 +362,29 @@ function external_radar.on_http_request(data)
         ::skip_nade::
     end
 
-    return json.encode(output)
+    -- cache game data
+    external_radar.cache.game_data = {
+        -- map = globals.map,
+        localplayer = {
+            index = local_index
+        },
+        players = player_array,
+        grenades = projectile_array,
+        bomb = {
+            state = bomb_state,
+            pos = bomb_pos
+        }
+    }
+
+end
+
+function external_radar.on_http_request(data)
+    -- only respond to requests for external radar
+    if data["script"] ~= "external_radar.lua" then return end
+    if data["path"] ~= "/luar" then return end
+
+    -- return cached data encoded as JSON
+    return json.encode(external_radar.cache.game_data)
 end
 
 return external_radar

@@ -227,15 +227,15 @@ function external_radar.on_worker(is_calibrated, game_id)
     for _, player in pairs(modules.entity_list:get_players()) do
         -- convert to lib_players class
         player = players.to_player(player)
-        if not player then goto skip end
+        if not player then goto skip_player end
 
         -- get origin (position)
         local origin = player:get_origin()
-        if not origin then goto skip end
+        if not origin then goto skip_player end
 
         -- get viewangles
         local view = player:get_eye_angles()
-        if not view then goto skip end
+        if not view then goto skip_player end
 
         -- check if player is flashed
         local pawn = player:get_pawn()
@@ -279,7 +279,7 @@ function external_radar.on_worker(is_calibrated, game_id)
             }
         })
 
-        ::skip::
+        ::skip_player::
     end
 
     -- table for storing projectile info
@@ -310,16 +310,19 @@ function external_radar.on_worker(is_calibrated, game_id)
         local game_scene_node = ent:read(MEM_ADDRESS, modules.source2:get_schema("C_BaseEntity", "m_pGameSceneNode"))
         if not game_scene_node or not game_scene_node:is_valid() then goto skip_nade end
         local nade_origin = game_scene_node:read(MEM_VECTOR, modules.source2:get_schema("CGameSceneNode", "m_vecAbsOrigin"))
+        if not nade_origin then goto skip_nade end
 
         -- get velocity
         local velocity = ent:read(MEM_VECTOR, modules.source2:get_schema("C_BaseEntity", "m_vecVelocity"))
+        if not velocity then goto skip_nade end
 
         -- get spawn time (why does this always return 0? GameTime_t)
         -- local spawn_time = ent:read(MEM_FLOAT, modules.source2:get_schema("C_BaseCSGrenadeProjectile", "m_flSpawnTime"))
 
-        -- get smoke owner team
-        if nade.type == "smoke" or nade.type == "flashbang" or nade.type == "frag" or nade.type == "firebomb" then
+        -- get nade owner team
+        if nade.type ~= "inferno" then
             local owner_pawn_handle = ent:read(MEM_INT, modules.source2:get_schema("C_BaseEntity", "m_hOwnerEntity"))
+            if not owner_pawn_handle or owner_pawn_handle == -1 then goto skip_nade end
             local owner_pawn = modules.entity_list:get_entity(owner_pawn_handle)
             if not owner_pawn then goto skip_nade end
             local owner_entity = modules.source2:to_controller(owner_pawn)

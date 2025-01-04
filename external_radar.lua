@@ -292,6 +292,12 @@ function external_radar.on_worker(is_calibrated, game_id)
         local effect_time = 0
         local fire_positions = {}
 
+        -- check if HE already exploded
+        if nade.type == "frag" then
+            local bExplodeEffectBegan = ent:read(MEM_BOOL, modules.source2:get_schema("C_BaseCSGrenadeProjectile", "m_bExplodeEffectBegan"))
+            if bExplodeEffectBegan then goto skip_nade end
+        end
+
         -- get fire positions
         if nade.type == "inferno" then
             local is_burning = ent:read(MEM_BOOL, modules.source2:get_schema( "C_Inferno", "m_bFireIsBurning" ))
@@ -307,17 +313,19 @@ function external_radar.on_worker(is_calibrated, game_id)
             end
         end
 
+        -- get gamescene node and nade origin
         local game_scene_node = ent:read(MEM_ADDRESS, modules.source2:get_schema("C_BaseEntity", "m_pGameSceneNode"))
         if not game_scene_node or not game_scene_node:is_valid() then goto skip_nade end
         local nade_origin = game_scene_node:read(MEM_VECTOR, modules.source2:get_schema("CGameSceneNode", "m_vecAbsOrigin"))
         if not nade_origin then goto skip_nade end
 
+        -- check if nade is dormant
+        local bDormant = game_scene_node:read(MEM_BOOL, modules.source2:get_schema("CGameSceneNode", "m_bDormant"))
+        if bDormant then goto skip_nade end
+
         -- get velocity
         local velocity = ent:read(MEM_VECTOR, modules.source2:get_schema("C_BaseEntity", "m_vecVelocity"))
         if not velocity then goto skip_nade end
-
-        -- get spawn time (why does this always return 0? GameTime_t)
-        -- local spawn_time = ent:read(MEM_FLOAT, modules.source2:get_schema("C_BaseCSGrenadeProjectile", "m_flSpawnTime"))
 
         -- get nade owner team
         if nade.type ~= "inferno" then

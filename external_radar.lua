@@ -323,10 +323,6 @@ function external_radar.on_worker(is_calibrated, game_id)
         local bDormant = game_scene_node:read(MEM_BOOL, modules.source2:get_schema("CGameSceneNode", "m_bDormant"))
         if bDormant then goto skip_nade end
 
-        -- get velocity
-        local velocity = ent:read(MEM_VECTOR, modules.source2:get_schema("C_BaseEntity", "m_vecVelocity"))
-        if not velocity then goto skip_nade end
-
         -- get nade owner team
         if nade.type ~= "inferno" then
             local owner_pawn_handle = ent:read(MEM_INT, modules.source2:get_schema("C_BaseEntity", "m_hOwnerEntity"))
@@ -359,11 +355,6 @@ function external_radar.on_worker(is_calibrated, game_id)
                 x = nade_origin.x,
                 y = nade_origin.y,
                 z = nade_origin.z
-            },
-            velocity = {
-                x = velocity.x,
-                y = velocity.y,
-                z = velocity.z
             },
             team = team,
             effecttime = effect_time,

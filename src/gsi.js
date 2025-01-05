@@ -120,7 +120,7 @@ setInterval(async () => {
 			}
 
 			// projectile
-			else if (nade.velocity != { x: 0, y: 0, z: 0 } && (nade.type != "smoke" || nade.effecttime == 0)) {
+			else {
 				grenades.projectiles.push({
 					id: nade.type + nade.id,
 					type: nade.type,

@@ -9,12 +9,16 @@ socket.element.addEventListener("players", event => {
 	// Abort if no map has been selected yet
 	if (global.currentMap == "none") return
 
+	let player_nums = []
+
 	// Loop though each player
 	for (let player of data.players) {
 		// Get their player element and start building the class
 		let playerDot = global.playerDots[player.num]
 		let playerLabel = global.playerLabels[player.num]
 		let classes = [player.team]
+
+		player_nums[player.num] = true
 
 		// Mark dead players with a cross
 		if (player.health <= 0) {
@@ -67,6 +71,8 @@ socket.element.addEventListener("players", event => {
 		// This prevents unnecessary className updates and CSS recalculations
 		if (playerDot.className != "dot " + newClasses) playerDot.className = "dot " + newClasses
 		if (playerLabel.className != "label " + newClasses) playerLabel.className = "label " + newClasses
+		if (playerDot.style.display =! "") playerDot.style.display = ""
+		if (playerLabel.style.display =! "") playerLabel.style.display = ""
 
 		// Set the player alive attribute (used in autozoom)
 		global.playerPos[player.num].alive = player.health > 0
@@ -76,6 +82,14 @@ socket.element.addEventListener("players", event => {
 		}
 		if (global.config.radar.showName == "always") {
 			playerLabel.textContent = player.name.substring(0, global.config.radar.maxNameLength)
+		}
+	}
+
+	// clear disconnected players
+	for (let i = 0; i < 19; i++) {
+		if (player_nums[i] != true) {
+			if (global.playerDots[i].style.display != "none") global.playerDots[i].style.display = "none"
+			if (global.playerLabels[i].style.display != "none") global.playerLabels[i].style.display = "none"
 		}
 	}
 })

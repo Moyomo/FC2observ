@@ -44,8 +44,8 @@ setInterval(async () => {
 		// add player to player array
 		playerArr.push({
 			id: toString(player.index),
-			// num: i,
-			num: player.index - 1,
+			num: i,
+			// num: player.index - 1,
 			name: unescape(player.name),
 			team: player.team == 3 ? 'CT' : 'T',
 			health: player.health,

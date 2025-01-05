@@ -54,30 +54,6 @@ socket.element.addEventListener("projectiles", event => {
 			global.projectileBuffer[projectileID] = []
 		}
 
-		// CS2 bug: frag grenades stay active after exploding about half the time
-		if (projectile.type == 'frag') {
-			// Get the previous coords from the
-			let trailParts = trailElement.getAttributeNS(null, "d").split(" ")
-			// True if more than two packets are known and nade stationary
-			let isStationary = trailParts.length > 6
-
-			// Go through each nade position from last to newest, max last 5
-			for (let i = trailParts.length - 1; i > 2 && trailParts.length - i < 5 * 3; i -= 3) {
-				// If the nade moved in this frame, it is not stationary
-				if (trailParts[i] != trailParts[i - 3] || trailParts[i - 1] != trailParts[i - 4]) {
-					isStationary = false
-					break
-				}
-			}
-
-			// Hide nade an tail if nade is stationary
-			if (isStationary) {
-				triggerSmokeGap(projectileElement)
-				projectileElement.style.opacity = 0
-				trailElement.style.opacity = 0
-			}
-		}
-
 		// Mark the projectile id as active
 		activeProjectiles.push(projectileID)
 

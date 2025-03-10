@@ -61,6 +61,13 @@ end
 function external_radar.on_worker(is_calibrated, game_id)
     if not is_calibrated then return end
 
+    -- check if we're ingame
+    local globals = modules.source2:get_globals()
+    if not globals or globals.map == "<empty>" then
+        external_radar.cache.game_data = {}
+        return
+    end
+
     -- get current time
     local time = fantasy.time()
 
@@ -171,7 +178,7 @@ function external_radar.on_worker(is_calibrated, game_id)
 
         -- get origin (position)
         local origin = player:get_origin()
-        if not origin or origin.x == 0.0 then goto skip_player end
+        if not origin then goto skip_player end
 
         -- get viewangles
         local view = player:get_eye_angles()

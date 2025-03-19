@@ -329,8 +329,9 @@ end
 
 function external_radar.on_http_request(data)
     -- only respond to requests for external radar
-    if data["script"] ~= "external_radar.lua" then return end
     if data["path"] ~= "/luar" then return end
+    if data["params"] == nil then return end
+    if data["params"]["script"] ~= "external_radar.lua" then return end
 
     -- return cached data encoded as JSON
     return json.encode(external_radar.cache.game_data)

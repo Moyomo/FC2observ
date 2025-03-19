@@ -18,7 +18,7 @@ setInterval(async () => {
 	// get game info
 	let game_info = {};
 	try {
-		let res = await fetch('http://127.0.0.1:9283/luar?no_debug');
+		let res = await fetch('http://127.0.0.1:9283/luar?no_debug&script=external_radar.lua');
 		game_info = await res.json();
 	} catch (error) {
 		return;

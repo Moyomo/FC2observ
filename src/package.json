@@ -1,5 +1,6 @@
 {
   "name": "fc2observ",
+  "productName": "FC2observ",
   "version": "1.8.4",
   "description": "External CS2 radar for FC2",
   "main": "index.js",
@@ -14,7 +15,7 @@
   "author": "Moyomo",
   "license": "GPL-3.0",
   "devDependencies": {
-    "electron": "^33.2.1",
+    "electron": "^35.0.2",
     "@electron/packager": "^18.3.6"
   },
   "dependencies": {

@@ -1,5 +1,7 @@
 node_modules
 
+src/FC2observ*
+
 config.override.json5
 keybinds.override.json5
 
